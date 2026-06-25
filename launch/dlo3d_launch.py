@@ -3,6 +3,7 @@ from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+import os
 
 def generate_launch_description():
 
@@ -38,37 +39,21 @@ def generate_launch_description():
             cmd=['ros2', 'run', 'rviz2', 'rviz2', '-d', LaunchConfiguration('rviz_config_file')],
             output='screen'
         ),
-        # Static Tf
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='static_tf_base_link_to_base_laser_link',
-            arguments=['0.0', '0.00', '0.0','0.0', '0.0', '0.0', 'base_link', 'sensor1/os_sensor'], # Change Sensor Frame.
-            output='screen'
-        ),
-
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='static_tf_base_link_to_base_imu_link',
-            arguments=['0.0', '0.00', '0.0', '0.0', '0.0', '0.0', 'base_link', 'imu'], # Change Sensor Frame.
-            output='screen'
-        ),
 
         # DLO3D Node
         Node(
-            package='D-LIO',
+            package='dlio',
             executable='dlo3d_node',
-            name='dll3d_node',
+            name='dlo3d_node',
             output='screen',
             remappings=[
                 ('/dll3d_node/initial_pose', '/initialpose')
             ],
             parameters=[
-                {'in_cloud_aux': '/os_cloud_node/points'},              # Aux LiDAR Topic if avaliable. If "aux_lidar_en = False" this topic will be ignored.
-                {'in_cloud': '/os_cloud_node/points'},  # Principal LiDAR Topic.
+                {'in_cloud_aux': '/back_lidar'},              # Aux LiDAR Topic if avaliable. If "aux_lidar_en = False" this topic will be ignored.
+                {'in_cloud': '/front_lidar'},  # Principal LiDAR Topic.
                 {'hz_cloud': 10.0},                     # Principal LiDAR Hz.
-                {'in_imu': '/os_cloud_node/imu'},       # IMU Topic.
+                {'in_imu': '/imu'},       # IMU Topic.
                 {'hz_imu': 100.0},                      # IMU Hz
                 {'calibration_time': 1.0},              # Only if the vehicle stay still before moving
                 {'aux_lidar_en': False},                # If only one LiDAR avaliable make sure to set this parameter to False
@@ -79,7 +64,7 @@ def generate_launch_description():
                 {'base_frame_id': 'base_link'},         # Sensor Frames
                 {'odom_frame_id': 'odom'},
                 {'map_frame_id': 'map'},
-                {'keyframe_dist': 1.0},                 # KeyFrame Tresholds
+                {'keyframe_dist': 0.25},                 # KeyFrame Tresholds
                 {'keyframe_rot': 25.0},
                 {'tdfGridSizeX_low': -10.0},            # Grid Size Limits
                 {'tdfGridSizeX_high': 70.0},
@@ -99,5 +84,5 @@ def generate_launch_description():
             ]
         ),
 
-        bag_play
+        # bag_play
     ])

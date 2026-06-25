@@ -257,8 +257,8 @@ class DLL6DSolver
         problem.AddParameterBlock(t, 3);
         problem.AddParameterBlock(q, 4);
 
-        ceres::Manifold* quaternion_manifold = new ceres::QuaternionManifold();
-        problem.SetManifold(q, quaternion_manifold);
+        ceres::LocalParameterization* quaternion_parameterization = new ceres::QuaternionParameterization();
+        problem.SetParameterization(q, quaternion_parameterization);
 
         int n=0;
         double nx, ny, nz;
