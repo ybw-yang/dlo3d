@@ -350,24 +350,19 @@ const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
 std::shared_ptr<std_srvs::srv::Trigger::Response> response)
 {
     RCLCPP_INFO(this->get_logger(), "[pubGridPCD] Service invoked!");
-
-    size_t idx = pcd_save_counter_++;
-    std::string filename = "grid_data_" + std::to_string(idx) + ".pcd";
-    RCLCPP_INFO(this->get_logger(), "[pubGridPCD] File Name: %s", filename.c_str());
-
-    auto cloud = m_grid3d.exportGridToCloud(filename, 1);
+    auto cloud = m_grid3d.exportGridToCloud(1);
 
     sensor_msgs::msg::PointCloud2 output_cloud;
     std_msgs::msg::Header header;
     header.stamp = this->get_clock()->now();
-    header.frame_id = "map";
+    header.frame_id = "odom";
     cloud->header = pcl_conversions::toPCL(header);
     pcl::toROSMsg(*cloud, output_cloud);
     grid_pcd_pub_->publish(output_cloud);
 
     response->success = true;
-    response->message = "PCD export initiated: " + filename;
-    RCLCPP_INFO(this->get_logger(), "PCD saved correctly!");
+    response->message = "point cloud size: " + std::to_string(cloud->size());
+    RCLCPP_INFO(this->get_logger(), "PCD pub correctly!");
 }
 
 void DLO3DNode::processQueues() {

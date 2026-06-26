@@ -40,6 +40,17 @@ def generate_launch_description():
             output='screen'
         ),
 
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='map_2_odom',
+            # x y z qx qy qz qw  parent child
+            arguments=['0.0', '0.0', '0.0',
+                    '0.0', '0.0', '0.0', '1.0',
+                    'map', 'odom'],
+            output='screen'
+        ),
+
         # DLO3D Node
         Node(
             package='dlio',

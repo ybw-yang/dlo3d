@@ -204,7 +204,7 @@ class GRID64
 		return Iterator(_grid, i, 1 + (uint32_t)((y-int_y)*_oneDivRes)*_cellStepY + (uint32_t)((z-int_z)*_oneDivRes)*_cellStepZ, (uint32_t)((x-int_x)*_oneDivRes), _cellSizeX);
 	}
 
-pcl::PointCloud<pcl::PointXYZI>::Ptr exportGridToCloud(const std::string& filename, int subsampling_factor)
+pcl::PointCloud<pcl::PointXYZI>::Ptr exportGridToCloud(int subsampling_factor)
 {
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
 
@@ -256,7 +256,7 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr exportGridToCloud(const std::string& filena
 
 void exportGridToPCD(const std::string& filename, int subsampling_factor)
 {
-    auto cloud = exportGridToCloud(filename, subsampling_factor);
+    auto cloud = exportGridToCloud(subsampling_factor);
     if (cloud->empty())
     {
         std::cerr << "[GRID64] Warning: Empty Cloud (no mask==0 found).\n";
