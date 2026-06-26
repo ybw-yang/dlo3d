@@ -163,6 +163,13 @@ public:
         );
         save_pcd_client_ = this->create_client<std_srvs::srv::Trigger>("/save_grid_pcd");
 
+        pub_pcd_service_ = this->create_service<std_srvs::srv::Trigger>(
+            "/pub_grid_pcd",
+            std::bind(&DLO3DNode::pubGridPCD, this, std::placeholders::_1, std::placeholders::_2)
+        );
+
+        grid_pcd_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/grid_pcd", 10);
+
         // Kalman Filter Setup
         imuFilter.setup(T_imu,calibTime,
                 this->declare_parameter<double>("gyr_dev", 1.0),
@@ -238,6 +245,9 @@ private:
     // Services
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_service_pcd_;
     rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr save_pcd_client_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pub_pcd_service_;
+    // Publishers
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr grid_pcd_pub_;
 
     // ROS2 parameters
     std::string m_inCloudTopic;
@@ -312,6 +322,8 @@ private:
     double adjustYaw(double angle, double reference);
     void saveGridPCD(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                           std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+    void pubGridPCD(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                          std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
 };
 
@@ -333,6 +345,30 @@ void DLO3DNode::saveGridPCD(
     RCLCPP_INFO(this->get_logger(), "PCD saved correctly!");
     }
 
+void DLO3DNode::pubGridPCD(
+const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+{
+    RCLCPP_INFO(this->get_logger(), "[pubGridPCD] Service invoked!");
+
+    size_t idx = pcd_save_counter_++;
+    std::string filename = "grid_data_" + std::to_string(idx) + ".pcd";
+    RCLCPP_INFO(this->get_logger(), "[pubGridPCD] File Name: %s", filename.c_str());
+
+    auto cloud = m_grid3d.exportGridToCloud(filename, 1);
+
+    sensor_msgs::msg::PointCloud2 output_cloud;
+    std_msgs::msg::Header header;
+    header.stamp = this->get_clock()->now();
+    header.frame_id = "map";
+    cloud->header = pcl_conversions::toPCL(header);
+    pcl::toROSMsg(*cloud, output_cloud);
+    grid_pcd_pub_->publish(output_cloud);
+
+    response->success = true;
+    response->message = "PCD export initiated: " + filename;
+    RCLCPP_INFO(this->get_logger(), "PCD saved correctly!");
+}
 
 void DLO3DNode::processQueues() {
     while (!stop_processing_) {

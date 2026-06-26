@@ -72,6 +72,11 @@ public:
 		m_grid.exportGridToPCD(filename, subsampling_factor);
 	}
 
+	pcl::PointCloud<pcl::PointXYZI>::Ptr exportGridToCloud(const std::string& filename, int subsampling_factor)
+	{
+		return m_grid.exportGridToCloud(filename, subsampling_factor);
+	}
+
 	virtual inline bool isIntoGrid(const float &x, const float &y, const float &z)
 	{
 		return (x > m_minX+1 && y > m_minY+1 && z > m_minZ+1 && x < m_maxX-1 && y < m_maxY-1 && z < m_maxZ-1);
