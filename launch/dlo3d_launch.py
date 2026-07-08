@@ -61,6 +61,7 @@ def generate_launch_description():
                 ('/dll3d_node/initial_pose', '/initialpose')
             ],
             parameters=[
+                {'use_sim_time': True},
                 {'in_cloud_aux': '/back_lidar'},              # Aux LiDAR Topic if avaliable. If "aux_lidar_en = False" this topic will be ignored.
                 {'in_cloud': '/front_lidar'},  # Principal LiDAR Topic.
                 {'hz_cloud': 10.0},                     # Principal LiDAR Hz.
