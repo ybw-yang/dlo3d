@@ -40,16 +40,16 @@ def generate_launch_description():
             output='screen'
         ),
 
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='map_2_odom',
-            # x y z qx qy qz qw  parent child
-            arguments=['0.0', '0.0', '0.0',
-                    '0.0', '0.0', '0.0', '1.0',
-                    'map', 'odom'],
-            output='screen'
-        ),
+        # Node(
+        #     package='tf2_ros',
+        #     executable='static_transform_publisher',
+        #     name='map_2_odom',
+        #     # x y z qx qy qz qw  parent child
+        #     arguments=['0.0', '0.0', '-0.15',
+        #             '0.0', '0.0', '0.0', '1.0',
+        #             'map', 'odom'],
+        #     output='screen'
+        # ),
 
         # DLO3D Node
         Node(
@@ -74,7 +74,7 @@ def generate_launch_description():
                 {'acc_dev': 0.0115432018302},
                 {'acc_rw_dev': 0.0000333},
                 {'base_frame_id': 'base_link'},         # Sensor Frames
-                {'odom_frame_id': 'odom'},
+                {'odom_frame_id': 'odom'},                   # 里程计中间帧: 发布 map->odom(标准 SLAM TF 树)
                 {'map_frame_id': 'map'},
                 {'keyframe_dist': 0.25},                 # KeyFrame Tresholds
                 {'keyframe_rot': 25.0},

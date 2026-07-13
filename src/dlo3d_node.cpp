@@ -78,6 +78,7 @@ public:
         m_inImuTopic       = this->declare_parameter<std::string>("in_imu", "/imu");
         m_baseFrameId      = this->declare_parameter<std::string>("base_frame_id", "base_link");
         m_odomFrameId      = this->declare_parameter<std::string>("odom_frame_id", "odom");
+        m_mapFrameId       = this->declare_parameter<std::string>("map_frame_id", "map");
 
         T_pcl              = 1.0 / this->declare_parameter<double>("hz_cloud", 10.0);
         T_imu              = 1.0 / this->declare_parameter<double>("hz_imu", 100.0);
@@ -256,6 +257,7 @@ private:
 
     std::string m_baseFrameId;
     std::string m_odomFrameId;
+    std::string m_mapFrameId;
     double T_pcl, T_imu;
 
     // ROS2 transform management
@@ -831,30 +833,56 @@ void DLO3DNode::pointcloudCallback(const sensor_msgs::msg::PointCloud2::ConstSha
 
         }
 
-        // Create and publish odom transform
+        // Publish TF as map->odom (standard SLAM TF tree): SLAM estimates map->base
+        // (m_x..m_rz); subtract the wheel-odometry odom->base to avoid giving
+        // base_footprint two parents (odom from gazebo + map from here).
+        //   T_map_odom = T_map_base * T_odom_base.inverse()
+        tf2::Transform T_map_base;
+        {
+            tf2::Quaternion q_mb;
+            q_mb.setRPY(m_rx, m_ry, m_rz);
+            q_mb.normalize();
+            T_map_base.setOrigin(tf2::Vector3(m_x, m_y, m_z));
+            T_map_base.setRotation(q_mb);
+        }
+
+        geometry_msgs::msg::TransformStamped T_odom_base_msg;
+        try {
+            // 用点云时间戳查 odom->base(与本帧位姿同一时刻); 查不到则跳过本帧不发 map->odom
+            T_odom_base_msg = m_tfBuffer->lookupTransform(
+                m_odomFrameId, m_baseFrameId,
+                tf2_ros::fromMsg(cloud->header.stamp), tf2::durationFromSec(0.1));
+        } catch (const tf2::TransformException & ex) {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+                "dlo3d: lookup %s->%s failed, skip map->odom this frame: %s",
+                m_odomFrameId.c_str(), m_baseFrameId.c_str(), ex.what());
+            return;
+        }
+        tf2::Transform T_odom_base;
+        tf2::fromMsg(T_odom_base_msg.transform, T_odom_base);
+
+        tf2::Transform T_map_odom = T_map_base * T_odom_base.inverse();
+
+        // Create and publish map->odom transform
         geometry_msgs::msg::TransformStamped odomTf;
         odomTf.header.stamp = cloud->header.stamp;
-        odomTf.header.frame_id = m_odomFrameId;
-        odomTf.child_frame_id = m_baseFrameId;
-        odomTf.transform.translation.x = m_x;
-        odomTf.transform.translation.y = m_y;
-        odomTf.transform.translation.z = m_z;
-
-        tf2::Quaternion q;
-        q.setRPY(m_rx, m_ry, m_rz);
-        odomTf.transform.rotation = tf2::toMsg(q.normalize());
+        odomTf.header.frame_id = m_mapFrameId;    // map
+        odomTf.child_frame_id  = m_odomFrameId;   // odom
+        odomTf.transform = tf2::toMsg(T_map_odom);
         m_tfBr->sendTransform(odomTf);
 
-        // Create and publish odom message
+        // Create and publish odom message (map->base pose, unchanged semantics)
         nav_msgs::msg::Odometry odomMsg;
         odomMsg.header.stamp = cloud->header.stamp;
-        odomMsg.header.frame_id = m_odomFrameId;
+        odomMsg.header.frame_id = m_mapFrameId;
         odomMsg.child_frame_id = m_baseFrameId;
 
         odomMsg.pose.pose.position.x = m_x;
         odomMsg.pose.pose.position.y = m_y;
         odomMsg.pose.pose.position.z = m_z;
 
+        tf2::Quaternion q;
+        q.setRPY(m_rx, m_ry, m_rz);
         odomMsg.pose.pose.orientation = tf2::toMsg(q.normalize());
         m_odomPub->publish(odomMsg);
 
