@@ -38,7 +38,7 @@ find_package(Ceres REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(std_srvs REQUIRED)
-find_library(ANN_LIB ANN PATHS /usr/lib/x86_64-linux-gnu /usr/lib /usr/local/lib)
+find_library(ANN_LIB NAMES ann ANN PATHS /usr/lib/x86_64-linux-gnu /usr/lib /usr/local/lib)
 
 ament_target_dependencies(dlo3d_node
   rclcpp
